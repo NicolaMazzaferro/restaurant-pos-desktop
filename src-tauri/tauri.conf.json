@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "restaurant-pos-desktop",
-  "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "productName": "Gestionale - A Villetta",
+  "version": "0.2.0",
+  "identifier": "it.nicolamazzaferro.restaurant-pos-desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
@@ -16,11 +16,11 @@
         "width": 800,
         "height": 600,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": true
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; img-src 'self' data: blob: http://127.0.0.1:8080 http://localhost:8080; connect-src 'self' http://127.0.0.1:8080 http://localhost:8080;"
     }
   },
   "bundle": {

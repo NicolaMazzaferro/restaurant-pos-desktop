@@ -1,8 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowPathIcon, ArrowRightOnRectangleIcon, Cog8ToothIcon } from "@heroicons/react/24/solid";
+import {
+  ArrowPathIcon,
+  ArrowRightOnRectangleIcon,
+  Cog8ToothIcon,
+  PowerIcon,
+} from "@heroicons/react/24/solid";
 import { useProductStore } from "../../store/productStore";
 import { useAuthStore } from "../../store/authStore";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+// se vuoi l'uscita “hard”:
+// import { exit } from "@tauri-apps/plugin-process";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -13,18 +21,14 @@ export default function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    hydrateFromStorage();
-  }, [hydrateFromStorage]);
+  useEffect(() => { hydrateFromStorage(); }, [hydrateFromStorage]);
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
       if (!userMenuRef.current) return;
       if (!userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false);
     };
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setUserMenuOpen(false);
-    };
+    const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") setUserMenuOpen(false); };
     document.addEventListener("mousedown", onDocClick);
     document.addEventListener("keydown", onEsc);
     return () => {
@@ -39,8 +43,21 @@ export default function Navbar() {
     setTimeout(() => setRefreshing(false), 600);
   };
 
-  const initials =
-    (name?.trim().split(/\s+/).slice(0, 2).map(s => s[0]?.toUpperCase()).join("") || "OP");
+  const handleExit = async () => {
+    try {
+      setUserMenuOpen(false);
+      const win = getCurrentWindow();
+      await (await win).close();               // tenta la chiusura “gentile”
+      // se hai listener che intercettano closeRequested, puoi forzare:
+      // await (await win).destroy();
+    } catch (err) {
+      console.error("Chiudi finestra fallito:", err);
+      // fallback “hard” se hai il plugin process:
+      // await exit(0);
+    }
+  };
+
+  const initials = (name?.trim().split(/\s+/).slice(0, 2).map(s => s[0]?.toUpperCase()).join("") || "OP");
 
   return (
     <>
@@ -48,51 +65,57 @@ export default function Navbar() {
         <div className="font-bold text-lg">A Villetta</div>
 
         <div className="flex items-center gap-3 text-sm">
-          {/* Menù utente (clic sul nome) */}
-            <div className="relative" ref={userMenuRef}>
+          <div className="relative" ref={userMenuRef}>
             <button
-                onClick={() => setUserMenuOpen((o) => !o)}
-                className="flex items-center gap-2 ps-1 pe-2 py-1 rounded-full bg-white/10 ring-1 ring-white/20 hover:bg-white/15 cursor-pointer"
-                aria-haspopup="menu"
-                aria-expanded={userMenuOpen}
-                title="Operatore"
+              onClick={() => setUserMenuOpen(o => !o)}
+              className="flex items-center gap-2 ps-1 pe-2 py-1 rounded-full bg-white/10 ring-1 ring-white/20 hover:bg-white/15 cursor-pointer"
+              aria-haspopup="menu"
+              aria-expanded={userMenuOpen}
+              title="Operatore"
             >
-                <div className="w-7 h-7 rounded-full bg-white/20 grid place-items-center font-semibold">
+              <div className="w-7 h-7 rounded-full bg-white/20 grid place-items-center font-semibold">
                 {initials}
-                </div>
-                <span className="hidden md:inline font-medium">{name ?? "Operatore"}</span>
+              </div>
+              <span className="hidden md:inline font-medium">{name ?? "Operatore"}</span>
             </button>
 
             {userMenuOpen && (
-                <div
-                role="menu"
-                className="absolute right-0 mt-2 min-w-48 rounded-lg bg-white text-gray-800 shadow-lg ring-1 ring-black/10 overflow-hidden z-50"
-                >
+              <div role="menu" className="absolute right-0 mt-2 min-w-48 rounded-lg bg-white text-gray-800 shadow-lg ring-1 ring-black/10 overflow-hidden z-50">
                 {role === "admin" && (
-                    <button
+                  <button
                     onClick={() => { setUserMenuOpen(false); navigate("/admin"); }}
                     className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 cursor-pointer"
                     role="menuitem"
-                    >
+                  >
                     <Cog8ToothIcon className="w-5 h-5 text-yellow-600" />
                     <span className="font-medium">Gestisci</span>
-                    </button>
+                  </button>
                 )}
 
-                {/* separatore */}
                 <div className="my-1 h-px bg-gray-100" />
 
                 <button
-                    onClick={() => { setUserMenuOpen(false); logout(); }}
-                    className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                    role="menuitem"
+                  onClick={() => { setUserMenuOpen(false); logout(); }}
+                  className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                  role="menuitem"
                 >
-                    <ArrowRightOnRectangleIcon className="w-5 h-5 text-red-600" />
-                    <span className="text-red-700 font-medium">Logout</span>
+                  <ArrowRightOnRectangleIcon className="w-5 h-5 text-red-600" />
+                  <span className="text-red-700 font-medium">Logout</span>
                 </button>
-                </div>
+
+                <div className="my-1 h-px bg-gray-100" />
+
+                <button
+                  onClick={handleExit}
+                  className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                  role="menuitem"
+                >
+                  <PowerIcon className="w-5 h-5 text-red-600" />
+                  <span className="text-red-700 font-medium">Esci</span>
+                </button>
+              </div>
             )}
-            </div>
+          </div>
 
           {/* Refresh prodotti */}
           <button

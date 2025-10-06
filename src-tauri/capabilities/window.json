@@ -1,0 +1,10 @@
+{
+  "identifier": "window",
+  "description": "Permessi base finestra (close/destroy)",
+  "windows": ["*"],
+  "permissions": [
+    "core:window:default",
+    "core:window:allow-close",
+    "core:window:allow-destroy"
+  ]
+}
