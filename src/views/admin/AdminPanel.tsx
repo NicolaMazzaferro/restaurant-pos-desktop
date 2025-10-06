@@ -4,9 +4,11 @@ import SidebarMenu from "../../components/SidebarMenu";
 import CategoriesAdmin from "./CategoryAdmin";
 import ProductsAdmin from "./ProductsAdmin";
 import { AnimatePresence, motion } from "framer-motion";
+import { PrinterIcon } from "lucide-react";
+import PrinterSettings from "./PrinterSettings";
 
 export default function AdminPanel() {
-  const [activeSection, setActiveSection] = useState<"products" | "categories">("products");
+  const [activeSection, setActiveSection] = useState<"products" | "categories" | "printer">("products");
 
   const menuItems = [
     {
@@ -23,6 +25,13 @@ export default function AdminPanel() {
       active: activeSection === "categories",
       onClick: () => setActiveSection("categories"),
     },
+    {
+      id: "printer",
+      label: "Impostazioni Scontrino",
+      icon: <PrinterIcon className="w-5 h-5" />,
+      active: activeSection === "printer",
+      onClick: () => setActiveSection("printer"),
+    }
   ];
 
   return (
@@ -44,6 +53,9 @@ export default function AdminPanel() {
             </div>
             <div className={`${activeSection === "categories" ? "block" : "hidden"}`}>
               <CategoriesAdmin />
+            </div>
+            <div className={`${activeSection === "printer" ? "block" : "hidden"}`}>
+              <PrinterSettings />
             </div>
           </motion.div>
         </AnimatePresence>
