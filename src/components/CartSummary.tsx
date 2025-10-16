@@ -36,7 +36,7 @@ export default function CartSummary() {
                 <div className="flex flex-col">
                   <span className="font-medium text-gray-800">{i.name}</span>
                   <span className="text-gray-500 text-sm">
-                    € {i.price.toFixed(2)}
+                    € {i.price.toFixed(2).replace(".", ",")}
                   </span>
                 </div>
 
@@ -48,7 +48,7 @@ export default function CartSummary() {
                   </div>
 
                   <span className="font-semibold text-gray-800 w-16 text-right">
-                    €{(i.price * i.quantity).toFixed(2)}
+                    €{(i.price * i.quantity).toFixed(2).replace(".", ",")}
                   </span>
                   <button
                     onClick={() => decrementQuantity(i.id)}
@@ -70,7 +70,7 @@ export default function CartSummary() {
         <div className="flex justify-between items-center">
           <p className="font-bold text-gray-700 text-lg">Totale:</p>
           <p className="font-extrabold text-xl text-gray-900">
-            €{total.toFixed(2)}
+            €{total.toFixed(2).replace(".", ",")}
           </p>
         </div>
 

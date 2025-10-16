@@ -157,7 +157,7 @@ export default function ProductTable({
                     <span className="font-medium text-gray-800">{p.name}</span>
                   </td>
 
-                  <td className="px-6 py-3 text-gray-700">€ {p.price.toFixed(2)}</td>
+                  <td className="px-6 py-3 text-gray-700">€ {p.price.toFixed(2).replace(".", ",")}</td>
 
                   <td className="px-6 py-3 text-right">
                     <div className="flex justify-end items-center gap-2">

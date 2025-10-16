@@ -10,7 +10,7 @@ export default function CheckoutView() {
       <pre className="bg-white p-4 border rounded-md">
         {items.map((i) => `${i.name} x${i.quantity}  €${(i.price * i.quantity).toFixed(2)}`).join('\n')}
         {'\n'}---------------------------{'\n'}
-        Total: €{total.toFixed(2)}
+        Total: €{total.toFixed(2).replace(".", ",")}
       </pre>
       <button
         onClick={clearCart}

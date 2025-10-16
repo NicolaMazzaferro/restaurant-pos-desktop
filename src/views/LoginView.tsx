@@ -1,7 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState } from "react";
 import { api } from "../api/client";
 import { Loader2 } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
+import { PowerIcon } from "@heroicons/react/24/solid";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+// se vuoi l'uscita “hard”:
+// import { exit } from "@tauri-apps/plugin-process";
 
 export default function LoginView() {
   const [email, setEmail] = useState("");
@@ -11,6 +17,20 @@ export default function LoginView() {
   const [loading, setLoading] = useState(false);
 
   const { setAuth } = useAuthStore();
+
+  // 🔹 Bottone "Esci"
+  const handleExit = async () => {
+    try {
+      const win = getCurrentWindow();
+      await (await win).close(); // tenta la chiusura “gentile”
+      // se hai listener che intercettano closeRequested, puoi forzare:
+      // await (await win).destroy();
+    } catch (err) {
+      console.error("Chiudi finestra fallito:", err);
+      // fallback “hard” se hai il plugin process:
+      // await exit(0);
+    }
+  };
 
   const validate = () => {
     const newErrors: typeof fieldErrors = {};
@@ -52,7 +72,6 @@ export default function LoginView() {
       } else {
         setError("Risposta non valida dal server.");
       }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setError("Credenziali errate o server non raggiungibile.");
     } finally {
@@ -61,7 +80,17 @@ export default function LoginView() {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-100">
+    <div className="relative flex items-center justify-center h-screen bg-gray-100">
+      {/* 🔹 Pulsante “Esci” in alto a destra */}
+      <button
+        onClick={handleExit}
+        className="absolute top-4 right-4 flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-md shadow transition cursor-pointer"
+        title="Chiudi applicazione"
+      >
+        <PowerIcon className="w-5 h-5" />
+        <span>Esci</span>
+      </button>
+
       <form
         onSubmit={handleSubmit}
         className="bg-white shadow-lg rounded-lg p-8 w-96 space-y-4"

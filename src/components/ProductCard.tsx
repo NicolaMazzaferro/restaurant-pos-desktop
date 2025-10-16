@@ -52,7 +52,7 @@ export default function ProductCard({
       <h3 className="font-semibold text-sm leading-snug line-clamp-2 min-h-[2.5rem]">
         {product.name}
       </h3>
-      <p className="text-gray-600 text-sm mt-1">€ {product.price.toFixed(2)}</p>
+      <p className="text-gray-600 text-sm mt-1">€ {product.price.toFixed(2).replace(".", ",")}</p>
     </div>
   );
 }
