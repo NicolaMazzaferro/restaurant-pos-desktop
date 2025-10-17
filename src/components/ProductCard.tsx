@@ -20,11 +20,15 @@ export default function ProductCard({
     setTimeout(() => setAnimating(false), 400);
   };
 
+  const isVarie =
+  product.name.toLowerCase() === "varie" || product.id === "varie";
+
   return (
     <div
       onClick={handleClick}
-      className={`bg-white shadow rounded-lg p-3 cursor-pointer select-none transition-transform transform
-        w-40 ${animating ? "animate-pulseOnce" : "hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"}`}
+      className={`bg-white shadow rounded-lg p-3 cursor-pointer select-none transition-transform transform w-40
+        ${animating ? "animate-pulseOnce" : "hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"}
+        ${isVarie ? "ring-4 ring-blue-600" : ""}`}
     >
       {/* Box immagine */}
       <div className="relative w-full aspect-[4/3] mb-2 overflow-hidden rounded-md bg-gray-100">
