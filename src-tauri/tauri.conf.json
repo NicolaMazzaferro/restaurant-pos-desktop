@@ -1,14 +1,16 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Gestionale - A Villetta",
-  "version": "0.7.0",
+  "version": "0.9.1",
   "identifier": "it.nicolamazzaferro.restaurant-pos-desktop",
+
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
     "devUrl": "http://localhost:5173",
     "frontendDist": "../dist"
   },
+
   "app": {
     "windows": [
       {
@@ -23,6 +25,7 @@
       "csp": "default-src 'self'; img-src 'self' data: blob: http://46.101.120.77:8081; connect-src 'self' http://46.101.120.77:8081 ws://46.101.120.77:8081;"
     }
   },
+
   "bundle": {
     "active": true,
     "targets": "all",
@@ -32,6 +35,16 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
-  }
+    ],
+    "createUpdaterArtifacts": true
+  },
+
+    "plugins": {
+      "updater": {
+        "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDFGRjFEOTc1M0VEODdEQjIKUldTeWZkZytkZG54SC9ISUJVNlhRTHFOalVjb01TdURVSUh2eDhuSGZ5c3NFQUhTU1BQbHNOWS8K",
+        "endpoints": ["http://46.101.120.77:8081/api/updates/{{target}}/{{current_version}}"],
+        "dangerousInsecureTransportProtocol": true,
+        "windows": { "installMode": "passive" }
+      }
+    }
 }

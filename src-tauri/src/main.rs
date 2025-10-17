@@ -11,6 +11,7 @@ use std::{
 use chrono::Local;
 use serde::{Deserialize, Serialize};
 use tauri::{command, Manager};
+use tauri_plugin_updater;
 
 // ==============================
 // 📦 STRUTTURE
@@ -344,6 +345,11 @@ fn main() {
             print_receipt,        // preconto ESC/POS
             print_fiscal_receipt  // scontrino fiscale Hydra XML
         ])
+        .plugin(tauri_plugin_app::init())
+        .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .run(tauri::generate_context!())
         .expect("Errore avvio Tauri");
 }

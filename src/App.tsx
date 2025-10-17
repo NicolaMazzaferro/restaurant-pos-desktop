@@ -4,6 +4,7 @@ import HomeView from "./views/HomeView";
 import LoginView from "./views/LoginView";
 import AdminPanel from "./views/admin/AdminPanel";
 import MainLayout from "./layouts/MainLayout";
+import { useAutoUpdate } from "./hooks/useAutoUpdate";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ProtectedRoute({ children, adminOnly = false }: any) {
@@ -11,6 +12,11 @@ function ProtectedRoute({ children, adminOnly = false }: any) {
   if (!token) return <Navigate to="/login" />;
   if (adminOnly && role !== "admin") return <Navigate to="/" />;
   return children;
+}
+
+function AutoUpdateTrigger() {
+  useAutoUpdate();
+  return null;
 }
 
 export default function AppRouter() {
@@ -26,6 +32,7 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <MainLayout />
+              <AutoUpdateTrigger />
             </ProtectedRoute>
           }
         >
