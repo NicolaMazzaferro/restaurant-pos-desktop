@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Gestionale - A Villetta",
-  "version": "0.3.0",
+  "version": "0.7.0",
   "identifier": "it.nicolamazzaferro.restaurant-pos-desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Restaurant POS",
+        "title": "Gestionale - A Villetta",
         "width": 800,
         "height": 600,
         "resizable": true,
@@ -20,7 +20,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' data: blob: http://127.0.0.1:8080 http://localhost:8080; connect-src 'self' http://127.0.0.1:8080 http://localhost:8080;"
+      "csp": "default-src 'self'; img-src 'self' data: blob: http://46.101.120.77:8081; connect-src 'self' http://46.101.120.77:8081 ws://46.101.120.77:8081;"
     }
   },
   "bundle": {

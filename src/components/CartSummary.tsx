@@ -1,6 +1,7 @@
 import { useCartStore } from "../store/cartStore";
 import { MinusIcon, TrashIcon } from "@heroicons/react/24/solid";
 import { printReceipt } from "../utils/printReceipt";
+import { printFiscalReceipt } from "../utils/printFiscalReceipt";
 
 export default function CartSummary() {
   const { items, decrementQuantity, clearCart } = useCartStore();
@@ -75,10 +76,16 @@ export default function CartSummary() {
         </div>
 
         <button
-          className="w-full mt-4 bg-green-600 text-white py-2 rounded-md hover:bg-green-700 font-semibold cursor-pointer"
+          className="w-full mt-4 bg-gray-600 text-white py-2 rounded-md hover:bg-gray-700 font-semibold cursor-pointer"
           onClick={() => printReceipt(items)}
         >
-          Stampa Scontrino
+          Stampa Preconto
+        </button>
+        <button
+          className="w-full mt-4 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 font-semibold cursor-pointer"
+          onClick={() => printFiscalReceipt(items)}
+        >
+          Stampa Scontrino Fiscale
         </button>
       </div>
     </div>
