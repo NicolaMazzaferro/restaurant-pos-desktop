@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { invoke } from "@tauri-apps/api/core";
+import { api } from "../api/client";
 import type { CartItem } from "../store/cartStore";
 
 /**
  * Esegue la stampa del preconto (non fiscale).
- * Recupera automaticamente la prima stampante configurata
+ * Recupera automaticamente la prima stampante configurata dal backend
  * che non è di tipo "hydra".
  */
 export async function printReceipt(items: CartItem[]) {
@@ -15,10 +16,11 @@ export async function printReceipt(items: CartItem[]) {
 
   try {
     // 🔹 1. Legge la configurazione stampanti dal backend
-    const printers = (await invoke("get_printer_configs")) as any[];
+    const response = await api.get<{ data: any[] }>("/printers");
+    const printers = response.data.data;
 
-    if (!printers || printers.length === 0) {
-      alert("❌ Nessuna stampante configurata.");
+    if (!Array.isArray(printers) || printers.length === 0) {
+      alert("❌ Nessuna stampante configurata sul server.");
       return;
     }
 
@@ -36,17 +38,17 @@ export async function printReceipt(items: CartItem[]) {
 
     // 🔹 4. Invoca il comando Tauri corretto
     await invoke("print_receipt", {
-      printer, // ✅ obbligatorio
+      printer,
       items: formattedItems,
       total,
     });
 
-    
-  } catch (error) {
+    console.log("🖨️ Stampa inviata con successo a", printer.name);
+  } catch (error: any) {
     console.error("Errore stampa:", error);
     alert(
       `❌ Errore durante la stampa del preconto.\n\n${
-        (error as Error).message || error
+        error?.response?.data?.message || error.message || String(error)
       }`
     );
   }
