@@ -1,5 +1,5 @@
 [package]
-name = "app"
+name = "gestionale-a-villetta"
 version = "0.3.0"
 description = "Gestionale - A Villetta"
 authors = ["Nicola Mazzaferro"]

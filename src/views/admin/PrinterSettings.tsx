@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
-import Toast from "../../components/Toast";
+import { invoke } from "@tauri-apps/api/core";
 import { AnimatePresence } from "framer-motion";
+import Toast from "../../components/Toast";
+import { api } from "../../api/client";
 
 type PrinterConfig = {
   id: string;
@@ -42,25 +43,36 @@ export default function PrinterSettings() {
 
   const showToast = (type: "success" | "error" | "delete", message: string) => {
     setToast({ type, message });
-    setTimeout(() => setToast(null), 6200);
+    setTimeout(() => setToast(null), 5000);
   };
 
   const activePrinter = printers.find((p) => p.id === activeId) || null;
 
-  // Carica configurazioni
+  // ------------------------------------------------------------
+  // 1️⃣ Carica configurazioni dal backend Laravel
+  // ------------------------------------------------------------
   useEffect(() => {
-    setLoading(true);
-    invoke("get_printer_configs")
-      .then((data: any) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setPrinters(data);
-          setActiveId(data[0].id);
+    (async () => {
+      try {
+        setLoading(true);
+        const response = await api.get<{ data: PrinterConfig[] }>("/printers");
+        const printers = response.data.data; // ✅ array reale
+
+        if (Array.isArray(printers)) {
+          setPrinters(printers);
+          if (printers.length > 0) setActiveId(printers[0].id);
         }
-      })
-      .catch((e) => showToast("error", `Errore nel caricamento: ${String(e)}`))
-      .finally(() => setLoading(false));
+      } catch (e: any) {
+        showToast("error", `Errore nel caricamento: ${e.message}`);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
+  // ------------------------------------------------------------
+  // 2️⃣ Aggiungi nuova stampante (solo lato frontend)
+  // ------------------------------------------------------------
   const addPrinter = () => {
     const newPrinter: PrinterConfig = {
       id: crypto.randomUUID(),
@@ -77,30 +89,50 @@ export default function PrinterSettings() {
     setActiveId(newPrinter.id);
   };
 
-  const removePrinter = (id: string) => {
-    setPrinters((prev) => prev.filter((p) => p.id !== id));
-    if (activeId === id) setActiveId(null);
-    showToast("delete", "Stampante rimossa.");
+  // ------------------------------------------------------------
+  // 3️⃣ Rimuovi stampante
+  // ------------------------------------------------------------
+  const removePrinter = async (id: string) => {
+    try {
+      setLoading(true);
+      await api.delete(`/printers/${id}`); // ✅ chiama il backend
+      setPrinters((prev) => prev.filter((p) => p.id !== id));
+      if (activeId === id) setActiveId(null);
+      showToast("delete", "Stampante eliminata con successo.");
+    } catch (e: any) {
+      showToast("error", `Errore durante l'eliminazione: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // ------------------------------------------------------------
+  // 4️⃣ Modifica campo
+  // ------------------------------------------------------------
   const handleFieldChange = (field: keyof PrinterConfig, value: string) => {
     setPrinters((prev) =>
       prev.map((p) => (p.id === activeId ? { ...p, [field]: value } : p))
     );
   };
 
+  // ------------------------------------------------------------
+  // 5️⃣ Salva tutte le stampanti nel backend Laravel
+  // ------------------------------------------------------------
   const handleSaveAll = async () => {
     try {
       setLoading(true);
-      await invoke("save_printer_configs", { printers });
-      showToast("success", "Configurazioni salvate correttamente.");
-    } catch (e) {
-      showToast("error", `Errore salvataggio: ${String(e)}`);
+      await api.post("/printers", { printers });
+      showToast("success", "Configurazioni salvate correttamente nel server.");
+    } catch (e: any) {
+      showToast("error", `Errore salvataggio: ${e.message}`);
     } finally {
       setLoading(false);
     }
   };
 
+  // ------------------------------------------------------------
+  // 6️⃣ Test stampa: via Tauri → driver locale
+  // ------------------------------------------------------------
   const handleTestPrint = async () => {
     if (!activePrinter) return;
     try {
@@ -118,6 +150,9 @@ export default function PrinterSettings() {
     }
   };
 
+  // ------------------------------------------------------------
+  // 7️⃣ UI
+  // ------------------------------------------------------------
   return (
     <div className="min-h-[80vh] w-full flex items-stretch justify-center bg-gray-50">
       <div className="flex w-full max-w-5xl bg-white rounded-2xl shadow-xl ring-1 ring-black/5 overflow-hidden">
@@ -174,8 +209,7 @@ export default function PrinterSettings() {
               <select
                 value={activePrinter.model || "bixolon"}
                 onChange={(e) => handleFieldChange("model", e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="bixolon">Bixolon (ESC/POS)</option>
                 <option value="hydra">Hydra SF-20</option>
@@ -197,9 +231,7 @@ export default function PrinterSettings() {
                       onChange={(e) => handleFieldChange(field, e.target.value)}
                       placeholder={PLACEHOLDERS[field] || ""}
                       disabled={loading}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 shadow-sm
-                                 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                                 disabled:bg-gray-100 disabled:text-gray-400"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 )
@@ -210,8 +242,7 @@ export default function PrinterSettings() {
               <button
                 onClick={handleTestPrint}
                 disabled={loading}
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300
-                           px-4 py-2.5 text-gray-800 bg-white hover:bg-gray-50 disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-gray-800 bg-white hover:bg-gray-50 disabled:opacity-60"
               >
                 🖨️ Test Stampa
               </button>
@@ -219,8 +250,7 @@ export default function PrinterSettings() {
               <button
                 onClick={handleSaveAll}
                 disabled={loading}
-                className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5
-                           bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
               >
                 💾 Salva Tutte
               </button>
