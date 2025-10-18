@@ -1,11 +1,21 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCartStore } from "../store/cartStore";
 import { MinusIcon, TrashIcon } from "@heroicons/react/24/solid";
 import { printReceipt } from "../utils/printReceipt";
 import { printFiscalReceipt } from "../utils/printFiscalReceipt";
+import { useState } from "react";
+import ExtraModal from "./ExtraModal";
 
 export default function CartSummary() {
-  const { items, decrementQuantity, clearCart } = useCartStore();
-  const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const { items, decrementQuantity, clearCart, addExtraToItem } = useCartStore();
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [extraModalOpen, setExtraModalOpen] = useState(false);
+
+  const total = items.reduce((sum, i) => {
+    const base = i.price;
+    const extrasTotal = i.extras.reduce((s, e) => s + e.price, 0);
+    return sum + (base + extrasTotal) * i.quantity;
+  }, 0);
 
   return (
     <div className="p-4 bg-gray-50 rounded-lg shadow-inner h-full flex flex-col">
@@ -17,8 +27,8 @@ export default function CartSummary() {
             onClick={clearCart}
             className="flex items-center gap-1 text-sm text-red-600 hover:text-red-800 transition"
           >
-            <TrashIcon className="w-4 h-4 cursor-pointer" />
-            <span className="cursor-pointer">Svuota</span>
+            <TrashIcon className="w-4 h-4" />
+            <span>Svuota</span>
           </button>
         )}
       </div>
@@ -29,45 +39,74 @@ export default function CartSummary() {
           <p className="text-gray-400 text-center mt-4">Carrello vuoto</p>
         ) : (
           <ul className="space-y-3">
-            {items.map((i) => (
-              <li
-                key={i.id}
-                className="flex justify-between items-center bg-white shadow-sm rounded-md p-3"
-              >
-                <div className="flex flex-col">
-                  <span className="font-medium text-gray-800">{i.name}</span>
-                  <span className="text-gray-500 text-sm">
-                    € {i.price.toFixed(2).replace(".", ",")}
-                  </span>
-                </div>
+            {items.map((i) => {
+              const extrasTotal = i.extras.reduce((s, e) => s + e.price, 0);
+              const lineTotal = (i.price + extrasTotal) * i.quantity;
 
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold w-6 text-center">
-                      x{i.quantity}
+              return (
+                <li
+                  key={i.cartKey}
+                  onClick={() => {
+                    setSelectedItem(i);
+                    setExtraModalOpen(true);
+                  }}
+                  className="flex justify-between items-start bg-white shadow-sm rounded-md p-3 cursor-pointer hover:bg-gray-50 transition"
+                >
+                  {/* Sezione sinistra: nome + extra */}
+                  <div className="flex-1 min-w-0">
+                    <span className="block font-medium text-gray-800 truncate">
+                      {i.name}
                     </span>
+                    <span className="text-gray-500 text-sm block">
+                      € {i.price.toFixed(2).replace(".", ",")}
+                    </span>
+
+                    {/* Lista extra (nome + prezzo visibile) */}
+                    {i.extras.length > 0 && (
+                      <ul className="mt-1 text-sm text-gray-600 space-y-0.5">
+                        {i.extras.map((e) => (
+                          <li
+                            key={e.id}
+                            className="flex justify-between gap-2 flex-wrap"
+                          >
+                            <span className="truncate max-w-[75%]">
+                              + {e.name}
+                            </span>
+                            <span className="text-nowrap">
+                              € {e.price.toFixed(2).replace(".", ",")}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
 
-                  <span className="font-semibold text-gray-800 w-16 text-right">
-                    €{(i.price * i.quantity).toFixed(2).replace(".", ",")}
-                  </span>
-                  <button
-                    onClick={() => decrementQuantity(i.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center"
-                    title="Rimuovi o decrementa"
-                  >
-                        <MinusIcon className="w-4 h-4 cursor-pointer" />
+                  {/* Sezione destra: quantità + totale + bottone */}
+                  <div className="flex flex-col items-end gap-1 min-w-[70px] text-right">
+                    <span className="font-bold text-gray-800">x{i.quantity}</span>
+                    <span className="font-semibold text-gray-800">
+                      €{lineTotal.toFixed(2).replace(".", ",")}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        decrementQuantity(i.cartKey);
+                      }}
+                      className="bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center mt-1"
+                      title="Rimuovi o decrementa"
+                    >
+                      <MinusIcon className="w-4 h-4" />
                     </button>
-                </div>
-              </li>
-            ))}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
 
       {/* Totale */}
-      <div className="mt-4">
-        <hr className="mb-2" />
+      <div className="mt-4 border-t border-gray-200 pt-3">
         <div className="flex justify-between items-center">
           <p className="font-bold text-gray-700 text-lg">Totale:</p>
           <p className="font-extrabold text-xl text-gray-900">
@@ -82,12 +121,28 @@ export default function CartSummary() {
           Stampa Preconto
         </button>
         <button
-          className="w-full mt-4 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 font-semibold cursor-pointer"
+          className="w-full mt-3 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 font-semibold cursor-pointer"
           onClick={() => printFiscalReceipt(items)}
         >
           Stampa Scontrino Fiscale
         </button>
       </div>
+
+      {/* Modale Extra */}
+      <ExtraModal
+        isOpen={extraModalOpen}
+        onClose={() => setExtraModalOpen(false)}
+        onConfirm={(name, price) => {
+          if (selectedItem) {
+            addExtraToItem(selectedItem.cartKey, {
+              id: `extra-${Date.now()}`,
+              name,
+              price,
+            });
+          }
+          setExtraModalOpen(false);
+        }}
+      />
     </div>
   );
 }

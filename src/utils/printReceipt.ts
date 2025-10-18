@@ -15,7 +15,7 @@ export async function printReceipt(items: CartItem[]) {
   }
 
   try {
-    // 🔹 1. Legge la configurazione stampanti dal backend
+    // 1. Ottieni le stampanti dal backend Laravel
     const response = await api.get<{ data: any[] }>("/printers");
     const printers = response.data.data;
 
@@ -24,19 +24,34 @@ export async function printReceipt(items: CartItem[]) {
       return;
     }
 
-    // 🔹 2. Seleziona la stampante predefinita (non Hydra)
+    // 2. Seleziona la stampante predefinita (non Hydra)
     const printer = printers.find((p) => p.model !== "hydra") || printers[0];
-
     if (!printer) {
       alert("⚠️ Nessuna stampante disponibile per il preconto.");
       return;
     }
 
-    // 🔹 3. Prepara i dati da inviare a Tauri
-    const formattedItems = items.map((i) => [i.name, i.price, i.quantity]);
-    const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    // 3. Calcola il totale (inclusi gli extra)
+    const total = items.reduce(
+      (sum, i) =>
+        sum +
+        i.price * i.quantity +
+        (i.extras?.reduce((s, e) => s + e.price, 0) || 0),
+      0
+    );
 
-    // 🔹 4. Invoca il comando Tauri corretto
+    // 4. Prepara i dati per il comando Tauri
+    const formattedItems = items.map((i) => ({
+      name: i.name,
+      qty: i.quantity,
+      price: i.price,
+      extras: i.extras?.map((e) => ({
+        name: e.name,
+        price: e.price,
+      })),
+    }));
+
+    // 5. Invia i dati al comando Rust (Tauri)
     await invoke("print_receipt", {
       printer,
       items: formattedItems,

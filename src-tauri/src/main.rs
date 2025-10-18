@@ -115,6 +115,7 @@ fn to_bytes_with_encoding(s: &str, model: &str) -> Vec<u8> {
 }
 
 fn push_item_line(buf: &mut Vec<u8>, name: &str, qty: i32, line_total: f64, model: &str) {
+    // Nome (massimo 24 caratteri)
     let mut name_b = to_bytes_with_encoding(name, model);
     if name_b.len() > 24 {
         name_b.truncate(24);
@@ -124,11 +125,22 @@ fn push_item_line(buf: &mut Vec<u8>, name: &str, qty: i32, line_total: f64, mode
     for _ in 0..pad {
         buf.push(b' ');
     }
-    let q = format!("{:>3}", qty);
-    buf.extend_from_slice(q.as_bytes());
-    buf.extend_from_slice(b"   ");
-    buf.push(euro_byte_for(model));
-    buf.extend_from_slice(format!("{:>6.2}\n", line_total).as_bytes());
+
+    // Quantità con prefisso "x" (solo se > 0)
+    if qty > 0 {
+        // “x1” o “x10” — sempre 3 caratteri (destra allineato)
+        let q = format!("{:>4}", format!("x{}", qty));
+        buf.extend_from_slice(q.as_bytes());
+    } else {
+        buf.extend_from_slice(b"    "); // 3 spazi per allineare gli extra
+    }
+
+    buf.extend_from_slice(b"     "); // spazio fisso tra QTA e importo
+
+    // Simbolo euro attaccato al prezzo
+    let euro = euro_byte_for(model);
+    buf.push(euro);
+    buf.extend_from_slice(format!("{:>5.2}\n", line_total).as_bytes());
 }
 
 // ==============================
@@ -151,11 +163,25 @@ fn open_output(printer_port: &str) -> Result<Box<dyn Write + Send>, String> {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ExtraItem {
+    pub name: String,
+    pub price: f64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PrecontoItem {
+    pub name: String,
+    pub qty: i32,
+    pub price: f64,
+    pub extras: Option<Vec<ExtraItem>>,
+}
+
 // ==============================
 // 🖨️ Test/Preconto ESC/POS (COM o TCP/9100)
 // ==============================
 #[command]
-fn print_receipt(printer: PrinterConfig, items: Vec<(String, f64, i32)>, total: f64) -> Result<(), String> {
+fn print_receipt(printer: PrinterConfig, items: Vec<PrecontoItem>, total: f64) -> Result<(), String> {
     let model = printer.model.clone().unwrap_or_else(|| "generic".into());
     let port_name = printer.printer_port.clone();
     let mut w = open_output(&port_name)?;
@@ -163,7 +189,7 @@ fn print_receipt(printer: PrinterConfig, items: Vec<(String, f64, i32)>, total: 
     let mut buf: Vec<u8> = Vec::with_capacity(4096);
     buf.extend_from_slice(&[ESC, b'@']);
 
-    // Imposta la codifica corretta
+    // Imposta la codifica corretta per il simbolo €
     match model.as_str() {
         "bixolon" => buf.extend_from_slice(&[ESC, b't', 19]), // CP858
         "epson" | "rp850use" => buf.extend_from_slice(&[ESC, b't', 16]), // CP1252
@@ -171,6 +197,7 @@ fn print_receipt(printer: PrinterConfig, items: Vec<(String, f64, i32)>, total: 
         _ => buf.extend_from_slice(&[ESC, b't', 19]),
     }
 
+    // Header
     buf.extend_from_slice(&[ESC, b'a', 1]);
     buf.extend_from_slice(&[ESC, b'E', 1]);
     buf.extend_from_slice(&[ESC, b'!', 0x30]);
@@ -189,10 +216,21 @@ fn print_receipt(printer: PrinterConfig, items: Vec<(String, f64, i32)>, total: 
     buf.extend_from_slice(b"IMPORTO\n");
     buf.extend_from_slice(b"------------------------------------------\n");
 
-    for (name, price, qty) in &items {
-        push_item_line(&mut buf, name, *qty, price * (*qty as f64), &model);
+    // 🔹 Stampa prodotti + eventuali extra
+    for it in &items {
+        let line_total = it.price * (it.qty as f64);
+        push_item_line(&mut buf, &it.name, it.qty, line_total, &model);
+
+        // Stampa extra (senza quantità)
+        if let Some(extras) = &it.extras {
+            for e in extras {
+                let label = format!("  + {}", e.name);
+                push_item_line(&mut buf, &label, 0, e.price, &model);
+            }
+        }
     }
 
+    // Totale
     buf.extend_from_slice(b"------------------------------------------\n");
     buf.extend_from_slice(&[ESC, b'!', 0x10]);
     let tot_label = to_bytes_with_encoding("TOTALE:", &model);
@@ -204,10 +242,11 @@ fn print_receipt(printer: PrinterConfig, items: Vec<(String, f64, i32)>, total: 
         }
     }
     line.push(euro_byte_for(&model));
-    line.extend_from_slice(format!("{:>6.2}\n", total).as_bytes());
+    line.extend_from_slice(format!("{:>5.2}\n", total).as_bytes());
     buf.extend_from_slice(&line);
     buf.extend_from_slice(&[ESC, b'!', 0x00]);
 
+    // Footer
     let dt = Local::now().format("%d/%m/%Y %H:%M").to_string();
     buf.extend_from_slice(to_bytes_with_encoding(&format!("\nData: {}\n", dt), &model).as_slice());
     buf.extend_from_slice(&[ESC, b'a', 1]);
